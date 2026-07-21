@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import 'remixicon/fonts/remixicon.css';
+
+:root {
+  --primary-color: #2962ff;
+  --secondary-color: #f4f6f9;
+  --text-primary: #111;
+  --text-secondary: #666;
+  --bg-color: #f4f6f9;
+  --white: #ffffff;
+  
+  --warning: #ffab00;
+  --danger: #ff5252;
+  --success: #00e676;
+  --info: #2979ff;
+  
+  --sidebar-width: 260px;
+  --topbar-height: 64px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  overflow-x: hidden;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+ul {
+  list-style: none;
+}
