@@ -1,0 +1,12 @@
+{
+  "name": "adminsphere-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AdminSphere - Enterprise Admin User Command Center",
+  "scripts": {
+    "start": "node backend/server.js",
+    "server": "cd backend && npm start",
+    "client": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build"
+  }
+}
