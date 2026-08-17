@@ -1,0 +1,4 @@
+project_id = "notifyflow-demo"
+
+[functions.send-notification-email]
+verify_jwt = false
