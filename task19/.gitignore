@@ -1,0 +1,23 @@
+# Node modules
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Environment files
+.env
+server/.env
+*.env.local
+
+# Production build outputs
+client/dist/
+client/build/
+
+# Database files (optional runtime data)
+server/data/*.json
+!server/data/.gitkeep
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

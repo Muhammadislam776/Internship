@@ -1,0 +1,20 @@
+{
+  "name": "securegate-jwt-authentication",
+  "version": "1.0.0",
+  "description": "SecureGate - Express JWT Authentication Middleware & Security Dashboard",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "server": "nodemon server/server.js",
+    "client": "npm run dev --prefix client",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "test": "node server/tests/auth.test.js"
+  },
+  "dependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
