@@ -1,0 +1,10 @@
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+frontend/dist/
+database/ordersphere.db
+test_api.js
+test_direct.js
+test_pglite.js
+.DS_Store
+*.log

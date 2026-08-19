@@ -1,0 +1,16 @@
+{
+  "name": "ordersphere-backend",
+  "version": "1.0.0",
+  "description": "OrderSphere Customer Order Intelligence Backend API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.2.14",
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}

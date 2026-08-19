@@ -1,0 +1,12 @@
+{
+  "name": "ordersphere",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OrderSphere — Customer Order Intelligence Dashboard",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev:backend": "node backend/server.js",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build"
+  }
+}
