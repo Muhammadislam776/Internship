@@ -24,7 +24,12 @@ import {
   Clock,
   HeartPulse,
   Lock,
-  Bell
+  Bell,
+  CalendarDays,
+  CheckCircle2,
+  Send,
+  UserCheck,
+  Sparkles
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -54,6 +59,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onCloseMobile }) => {
   const todayAppts = appointments.filter((a) => {
     const today = new Date().toDateString();
     return new Date(a.dateTime).toDateString() === today;
+  }).length;
+  const waitingCount = appointments.filter((a) => {
+    const today = new Date().toDateString();
+    return new Date(a.dateTime).toDateString() === today && (a.status === 'scheduled' || a.status === 'in_progress');
   }).length;
 
   const getNavItemsForRole = (role: UserRole): NavSection[] => {
@@ -165,18 +174,36 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onCloseMobile }) => {
       case 'receptionist':
         return [
           {
-            section: 'Front Desk',
+            section: 'FRONT DESK',
             items: [
-              {
-                id: 'scheduler',
-                label: 'Appointment Scheduler',
-                icon: Calendar,
-                badge: appointments.length,
-                badgeColor: 'bg-blue-100 text-blue-700',
-              },
-              { id: 'twilio', label: 'Patient Messaging', icon: MessageSquare },
-              { id: 'gmb_saas', label: 'Online Booking', icon: Globe },
-              { id: 'rota', label: 'Staff Rota', icon: Users },
+              { id: 'reception_dashboard', label: 'Dashboard', icon: LayoutDashboard },
+              { id: 'reception_today', label: "Today's Appointments", icon: CalendarDays, badge: todayAppts || undefined, badgeColor: 'bg-blue-100 text-blue-700' },
+              { id: 'reception_checkin', label: 'Patient Check-in', icon: CheckCircle2 },
+              { id: 'reception_patients', label: 'Patients', icon: Users },
+              { id: 'reception_scheduler', label: 'Appointment Scheduler', icon: Calendar },
+              { id: 'reception_waiting', label: 'Waiting Room', icon: Clock, badge: waitingCount || undefined, badgeColor: 'bg-amber-100 text-amber-700' },
+            ],
+          },
+          {
+            section: 'COMMUNICATION',
+            items: [
+              { id: 'reception_messaging', label: 'Patient Messaging', icon: MessageSquare },
+              { id: 'reception_reminders', label: 'SMS & Reminders', icon: Send },
+            ],
+          },
+          {
+            section: 'CLINIC',
+            items: [
+              { id: 'reception_availability', label: 'Doctor Availability', icon: Stethoscope },
+              { id: 'reception_rota', label: 'Staff Rota', icon: UserCheck },
+              { id: 'reception_online_booking', label: 'Online Booking', icon: Globe },
+            ],
+          },
+          {
+            section: 'INSIGHTS',
+            items: [
+              { id: 'reception_analytics', label: 'Appointment Analytics', icon: BarChart3 },
+              { id: 'reception_noshow', label: 'No-Show Insights', icon: Sparkles },
             ],
           },
         ];
@@ -342,18 +369,34 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onCloseMobile }) => {
 
         {/* Sidebar Footer */}
         <div className="p-3 border-t border-slate-100 space-y-1">
+          {role === 'receptionist' && (
+            <button
+              onClick={() => {
+                setActiveTab('reception_profile');
+                onCloseMobile();
+              }}
+              className={`w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold rounded-xl transition-all ${
+                activeTab === 'reception_profile'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <User className={`w-4 h-4 ${activeTab === 'reception_profile' ? 'text-white' : 'text-slate-400'}`} />
+              <span>My Profile</span>
+            </button>
+          )}
           <button
             onClick={() => {
-              setActiveTab(role === 'patient' ? 'patient_help' : 'help');
+              setActiveTab(role === 'patient' ? 'patient_help' : role === 'receptionist' ? 'reception_help' : 'help');
               onCloseMobile();
             }}
             className={`w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold rounded-xl transition-all ${
-              activeTab === (role === 'patient' ? 'patient_help' : 'help')
+              activeTab === (role === 'patient' ? 'patient_help' : role === 'receptionist' ? 'reception_help' : 'help')
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
-            <HelpCircle className={`w-4 h-4 ${activeTab === (role === 'patient' ? 'patient_help' : 'help') ? 'text-white' : 'text-slate-400'}`} />
+            <HelpCircle className={`w-4 h-4 ${activeTab === (role === 'patient' ? 'patient_help' : role === 'receptionist' ? 'reception_help' : 'help') ? 'text-white' : 'text-slate-400'}`} />
             <span>Help & Support</span>
           </button>
           <button

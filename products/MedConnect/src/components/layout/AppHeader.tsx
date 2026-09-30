@@ -56,6 +56,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
   // Global search (Role-aware & privacy-enforcing)
   const isPatient = currentUser?.role === 'patient';
+  const isReceptionist = currentUser?.role === 'receptionist';
 
   const handleSearch = (q: string) => {
     setSearchQuery(q);
@@ -122,7 +123,14 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           type: 'patient',
           label: `${p.firstName} ${p.lastName}`,
           sub: `NHS ${p.nhsNumber}`,
-          action: () => { setActiveTab('schedule'); setShowResults(false); },
+          action: () => { 
+            if (isReceptionist) {
+              setActiveTab('reception_patients');
+            } else {
+              setActiveTab('schedule');
+            }
+            setShowResults(false); 
+          },
         });
       });
 
@@ -134,7 +142,14 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           type: 'appointment',
           label: a.patientName,
           sub: `${a.reasonForVisit} · ${new Date(a.dateTime).toLocaleDateString('en-GB')}`,
-          action: () => { setActiveTab('scheduler'); setShowResults(false); },
+          action: () => { 
+            if (isReceptionist) {
+              setActiveTab('reception_today');
+            } else {
+              setActiveTab('scheduler');
+            }
+            setShowResults(false); 
+          },
         });
       });
     }
@@ -313,9 +328,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
             {/* Help */}
             <button
-              onClick={() => setActiveTab('help')}
+              onClick={() => setActiveTab(isPatient ? 'patient_help' : isReceptionist ? 'reception_help' : 'help')}
               className={`p-2 rounded-lg transition-colors hidden sm:flex ${
-                activeTab === 'help'
+                activeTab === (isPatient ? 'patient_help' : isReceptionist ? 'reception_help' : 'help')
                   ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-200'
                   : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
               }`}
@@ -370,6 +385,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                           { icon: <User className="w-3.5 h-3.5" />, label: 'My Profile', action: () => { setActiveTab('patient_profile'); setIsProfileMenuOpen(false); } },
                           { icon: <Settings className="w-3.5 h-3.5" />, label: 'Account Settings', action: () => { setActiveTab('patient_privacy'); setIsProfileMenuOpen(false); } },
                           { icon: <Shield className="w-3.5 h-3.5" />, label: 'Privacy & Security', action: () => { setActiveTab('patient_privacy'); setIsProfileMenuOpen(false); } },
+                        ]
+                      : isReceptionist
+                      ? [
+                          { icon: <User className="w-3.5 h-3.5" />, label: 'My Profile', action: () => { setActiveTab('reception_profile'); setIsProfileMenuOpen(false); } },
+                          { icon: <Settings className="w-3.5 h-3.5" />, label: 'Preferences', action: () => { setActiveTab('settings'); setIsProfileMenuOpen(false); } },
                         ]
                       : [
                           { icon: <User className="w-3.5 h-3.5" />, label: 'My Profile', action: () => { setActiveTab('profile'); setIsProfileMenuOpen(false); } },

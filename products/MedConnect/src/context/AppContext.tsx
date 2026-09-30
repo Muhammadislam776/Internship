@@ -72,6 +72,11 @@ interface AppContextType {
   triggerTwilioReminder: (appointmentId: string, reminderType?: 'standard_reminder' | 'urgent_confirmation' | 'telehealth_link') => Promise<void>;
   simulatePatientSmsReply: (logId: string, replyText: string) => void;
   
+  // Patient & Front Desk Management
+  addPatient: (patient: Patient) => void;
+  rescheduleAppointment: (appointmentId: string, newDateTime: string, reason?: string) => Promise<void>;
+  cancelAppointment: (appointmentId: string, reason?: string) => Promise<void>;
+
   // Intake form
   submitIntakeForm: (patientId: string, formData: IntakeFormData) => Promise<string>;
   getDecryptedIntakeForm: (patientId: string) => { data: IntakeFormData | null; error?: string };
@@ -489,6 +494,59 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const addPatient = (newPat: Patient) => {
+    setPatients((prev) => [newPat, ...prev]);
+    showToast('success', 'Patient Registered', `${newPat.firstName} ${newPat.lastName} (NHS: ${newPat.nhsNumber}) registered.`);
+  };
+
+  const rescheduleAppointment = async (appointmentId: string, newDateTime: string, reason?: string) => {
+    setAppointments((prev) =>
+      prev.map((app) => (app.id === appointmentId ? { ...app, dateTime: newDateTime, status: 'confirmed', notes: reason ? `${app.notes ? app.notes + ' | ' : ''}Rescheduled: ${reason}` : app.notes } : app))
+    );
+    const appt = appointments.find(a => a.id === appointmentId);
+    if (appt) {
+      try {
+        const { log } = await TwilioService.dispatchSms({
+          toPhone: appt.patientPhone,
+          patientName: appt.patientName.split(' ')[0],
+          appointmentId: appt.id,
+          appointmentTime: new Date(newDateTime).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }),
+          doctorName: appt.doctorName,
+          clinicName: 'St. James Practice',
+          type: 'standard_reminder'
+        });
+        setTwilioLogs((prev) => [log, ...prev]);
+      } catch (e) {
+        console.error('Twilio dispatch error:', e);
+      }
+    }
+    showToast('success', 'Appointment Rescheduled', `Rescheduled to ${new Date(newDateTime).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}. Confirmation SMS sent.`);
+  };
+
+  const cancelAppointment = async (appointmentId: string, reason?: string) => {
+    setAppointments((prev) =>
+      prev.map((app) => (app.id === appointmentId ? { ...app, status: 'cancelled', notes: reason ? `${app.notes ? app.notes + ' | ' : ''}Cancelled: ${reason}` : app.notes } : app))
+    );
+    const appt = appointments.find(a => a.id === appointmentId);
+    if (appt) {
+      try {
+        const { log } = await TwilioService.dispatchSms({
+          toPhone: appt.patientPhone,
+          patientName: appt.patientName.split(' ')[0],
+          appointmentId: appt.id,
+          appointmentTime: new Date(appt.dateTime).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }),
+          doctorName: appt.doctorName,
+          clinicName: 'St. James Practice',
+          type: 'standard_reminder'
+        });
+        setTwilioLogs((prev) => [log, ...prev]);
+      } catch (e) {
+        console.error('Twilio dispatch error:', e);
+      }
+    }
+    showToast('info', 'Appointment Cancelled', `Appointment marked as cancelled. Notification dispatched to patient.`);
+  };
+
   const submitIntakeForm = async (patientId: string, formData: IntakeFormData): Promise<string> => {
     const encrypted = encryptPHI(formData);
     setIntakePayloads((prev) => ({
@@ -670,6 +728,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         runMlPredictionForAppointment,
         triggerTwilioReminder,
         simulatePatientSmsReply,
+        addPatient,
+        rescheduleAppointment,
+        cancelAppointment,
         submitIntakeForm,
         getDecryptedIntakeForm,
         approvePrescription,
