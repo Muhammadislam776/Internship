@@ -17,7 +17,8 @@ import {
   Calendar,
   FileText,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Shield
 } from 'lucide-react';
 
 interface AppHeaderProps {
@@ -53,37 +54,90 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   });
   const notifCount = pendingRefills + (todayAppts.length > 0 ? 1 : 0);
 
-  // Global search
+  // Global search (Role-aware & privacy-enforcing)
+  const isPatient = currentUser?.role === 'patient';
+
   const handleSearch = (q: string) => {
     setSearchQuery(q);
     if (!q.trim()) { setSearchResults([]); setShowResults(false); return; }
     const results: { type: string; label: string; sub: string; action: () => void }[] = [];
 
-    // Search patients
-    patients.filter((p) => {
-      const full = `${p.firstName} ${p.lastName} ${p.nhsNumber}`.toLowerCase();
-      return full.includes(q.toLowerCase());
-    }).slice(0, 3).forEach((p) => {
-      results.push({
-        type: 'patient',
-        label: `${p.firstName} ${p.lastName}`,
-        sub: `NHS ${p.nhsNumber}`,
-        action: () => { setActiveTab('schedule'); setShowResults(false); },
-      });
-    });
+    if (isPatient) {
+      // 1. Patient can only search their OWN appointments
+      appointments
+        .filter((a) => a.patientId === currentUser?.id)
+        .filter((a) =>
+          a.doctorName.toLowerCase().includes(q.toLowerCase()) ||
+          a.reasonForVisit.toLowerCase().includes(q.toLowerCase())
+        )
+        .slice(0, 3)
+        .forEach((a) => {
+          results.push({
+            type: 'appointment',
+            label: a.doctorName,
+            sub: `${a.reasonForVisit} · ${new Date(a.dateTime).toLocaleDateString('en-GB')}`,
+            action: () => { setActiveTab('patient_appointments'); setShowResults(false); },
+          });
+        });
 
-    // Search appointments
-    appointments.filter((a) => {
-      return a.patientName.toLowerCase().includes(q.toLowerCase()) ||
-             a.reasonForVisit.toLowerCase().includes(q.toLowerCase());
-    }).slice(0, 2).forEach((a) => {
-      results.push({
-        type: 'appointment',
-        label: a.patientName,
-        sub: `${a.reasonForVisit} · ${new Date(a.dateTime).toLocaleDateString('en-GB')}`,
-        action: () => { setActiveTab('scheduler'); setShowResults(false); },
+      // 2. Patient can search their OWN prescriptions
+      refillRequests
+        .filter((r) => r.patientId === currentUser?.id)
+        .filter((r) => r.medicationName.toLowerCase().includes(q.toLowerCase()))
+        .slice(0, 2)
+        .forEach((r) => {
+          results.push({
+            type: 'prescription',
+            label: r.medicationName,
+            sub: `${r.dosage} · Prescribed by ${r.doctorName || 'GP'}`,
+            action: () => { setActiveTab('patient_prescriptions'); setShowResults(false); },
+          });
+        });
+
+      // 3. Quick help & actions matching query
+      const helpActions = [
+        { key: 'book', label: 'Book an Appointment', sub: 'Choose doctor, date and consultation type', tab: 'patient_appointments' },
+        { key: 'video', label: 'Video Consultation', sub: 'Join Telehealth consultation and waiting room', tab: 'patient_consultations' },
+        { key: 'form', label: 'Digital Health Forms', sub: 'Complete pre-arrival intake form', tab: 'patient_forms' },
+        { key: 'records', label: 'My Medical Records', sub: 'View consultations and medical history', tab: 'patient_records' },
+      ];
+
+      helpActions
+        .filter((h) => h.label.toLowerCase().includes(q.toLowerCase()) || h.key.includes(q.toLowerCase()))
+        .forEach((h) => {
+          results.push({
+            type: 'help',
+            label: h.label,
+            sub: h.sub,
+            action: () => { setActiveTab(h.tab); setShowResults(false); },
+          });
+        });
+    } else {
+      // Staff Search (Doctors, Reception, etc.)
+      patients.filter((p) => {
+        const full = `${p.firstName} ${p.lastName} ${p.nhsNumber}`.toLowerCase();
+        return full.includes(q.toLowerCase());
+      }).slice(0, 3).forEach((p) => {
+        results.push({
+          type: 'patient',
+          label: `${p.firstName} ${p.lastName}`,
+          sub: `NHS ${p.nhsNumber}`,
+          action: () => { setActiveTab('schedule'); setShowResults(false); },
+        });
       });
-    });
+
+      appointments.filter((a) => {
+        return a.patientName.toLowerCase().includes(q.toLowerCase()) ||
+               a.reasonForVisit.toLowerCase().includes(q.toLowerCase());
+      }).slice(0, 2).forEach((a) => {
+        results.push({
+          type: 'appointment',
+          label: a.patientName,
+          sub: `${a.reasonForVisit} · ${new Date(a.dateTime).toLocaleDateString('en-GB')}`,
+          action: () => { setActiveTab('scheduler'); setShowResults(false); },
+        });
+      });
+    }
 
     setSearchResults(results);
     setShowResults(true);
@@ -179,7 +233,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               onFocus={() => searchQuery && setShowResults(true)}
-              placeholder="Search patients, NHS numbers, appointments..."
+              placeholder={isPatient ? "Search help, appointments, prescriptions..." : "Search patients, NHS numbers, appointments..."}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
             />
 
@@ -311,11 +365,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
                   {/* Menu items */}
                   <div className="py-1">
-                    {[
-                      { icon: <User className="w-3.5 h-3.5" />, label: 'My Profile', action: () => { setActiveTab('profile'); setIsProfileMenuOpen(false); } },
-                      { icon: <Calendar className="w-3.5 h-3.5" />, label: 'My Availability', action: () => { setActiveTab('availability'); setIsProfileMenuOpen(false); } },
-                      { icon: <Settings className="w-3.5 h-3.5" />, label: 'Account Settings', action: () => { setActiveTab('settings'); setIsProfileMenuOpen(false); } },
-                    ].map((item) => (
+                    {(isPatient
+                      ? [
+                          { icon: <User className="w-3.5 h-3.5" />, label: 'My Profile', action: () => { setActiveTab('patient_profile'); setIsProfileMenuOpen(false); } },
+                          { icon: <Settings className="w-3.5 h-3.5" />, label: 'Account Settings', action: () => { setActiveTab('patient_privacy'); setIsProfileMenuOpen(false); } },
+                          { icon: <Shield className="w-3.5 h-3.5" />, label: 'Privacy & Security', action: () => { setActiveTab('patient_privacy'); setIsProfileMenuOpen(false); } },
+                        ]
+                      : [
+                          { icon: <User className="w-3.5 h-3.5" />, label: 'My Profile', action: () => { setActiveTab('profile'); setIsProfileMenuOpen(false); } },
+                          { icon: <Calendar className="w-3.5 h-3.5" />, label: 'My Availability', action: () => { setActiveTab('availability'); setIsProfileMenuOpen(false); } },
+                          { icon: <Settings className="w-3.5 h-3.5" />, label: 'Account Settings', action: () => { setActiveTab('settings'); setIsProfileMenuOpen(false); } },
+                        ]
+                    ).map((item) => (
                       <button
                         key={item.label}
                         onClick={item.action}

@@ -27,6 +27,7 @@ import { encryptPHI, decryptPHI, anonymizePatientRecord } from '../lib/crypto';
 import { predictNoShowRisk } from '../lib/mlPredictor';
 import { TwilioService } from '../lib/twilioSimulator';
 import { GoogleCalendarService } from '../lib/googleCalendar';
+import { useAuth } from './AuthContext';
 
 export interface ToastMessage {
   id: string;
@@ -114,6 +115,173 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentDoctorId, setCurrentDoctorId] = useState<string>('doc_1');
   const [activeTelehealthAppointment, setActiveTelehealthAppointment] = useState<Appointment | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  const { currentUser } = useAuth();
+
+  // Auto-synchronize authenticated patient identity and records
+  useEffect(() => {
+    if (!currentUser) return;
+
+    if (currentUser.role === 'patient') {
+      const existing = patients.find(
+        (p) => p.id === currentUser.id || (currentUser.email && p.email?.toLowerCase() === currentUser.email.toLowerCase())
+      );
+
+      if (existing) {
+        if (currentPatientId !== existing.id) {
+          setCurrentPatientId(existing.id);
+        }
+      } else {
+        const nameParts = (currentUser.name || 'Patient User').trim().split(' ');
+        const firstName = nameParts[0] || 'Patient';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        const newPatient: Patient = {
+          id: currentUser.id,
+          nhsNumber: currentUser.nhsNumber || '485 772 9012',
+          firstName,
+          lastName,
+          dob: '1992-06-15',
+          gender: 'male',
+          email: currentUser.email,
+          phone: '+44 7700 900555',
+          address: {
+            line1: '12 St. James Square',
+            city: 'London',
+            postcode: 'SW1Y 4LE'
+          },
+          gpPracticeName: currentUser.clinicName || 'St. James Health Centre',
+          emergencyContact: {
+            name: 'Sarah Jutt',
+            relationship: 'Next of Kin',
+            phone: '+44 7700 900556'
+          },
+          allergies: ['Penicillin V'],
+          medicalConditions: ['Seasonal Asthma'],
+          activePrescriptionsCount: 1,
+          intakeFormCompleted: false,
+          historicalNoShows: 0,
+          historicalTotalBookings: 2,
+          gdprConsent: {
+            marketingConsent: false,
+            smsNotificationConsent: true,
+            dataSharingConsent: true,
+            consentTimestamp: new Date().toISOString()
+          },
+          createdAt: new Date().toISOString()
+        };
+
+        setPatients((prev) => [newPatient, ...prev]);
+        setCurrentPatientId(currentUser.id);
+
+        // Seed appointments for this patient if none exist
+        setAppointments((prev) => {
+          const hasAppt = prev.some((a) => a.patientId === currentUser.id);
+          if (!hasAppt) {
+            const nextDate = new Date();
+            nextDate.setHours(10, 30, 0, 0);
+            if (nextDate.getTime() < Date.now()) {
+              nextDate.setDate(nextDate.getDate() + 1);
+            }
+
+            const personalAppt: Appointment = {
+              id: `apt_pat_${Date.now().toString().slice(-4)}`,
+              patientId: currentUser.id,
+              patientName: currentUser.name,
+              patientNhsNumber: newPatient.nhsNumber,
+              patientPhone: newPatient.phone,
+              patientEmail: currentUser.email,
+              doctorId: 'doc_1',
+              doctorName: 'Dr. Sarah Jenkins',
+              doctorSpecialty: 'General Practitioner',
+              clinicType: 'gp_practice',
+              dateTime: nextDate.toISOString(),
+              durationMinutes: 15,
+              mode: 'video_consultation',
+              status: 'confirmed',
+              reasonForVisit: 'General Consultation & Health Review',
+              paymentStatus: 'exempt_nhs',
+              mlPrediction: {
+                noShowProbability: 5,
+                riskLevel: 'low',
+                confidenceScore: 0.95,
+                keyFactors: [],
+                recommendedAction: 'Standard 24h reminder',
+                smsStrategy: 'standard_24h'
+              },
+              twilioRemindersSent: []
+            };
+
+            const followUpDate = new Date();
+            followUpDate.setDate(followUpDate.getDate() + 8);
+            followUpDate.setHours(14, 0, 0, 0);
+            const inPersonAppt: Appointment = {
+              id: `apt_pat_${Date.now().toString().slice(-4)}_2`,
+              patientId: currentUser.id,
+              patientName: currentUser.name,
+              patientNhsNumber: newPatient.nhsNumber,
+              patientPhone: newPatient.phone,
+              patientEmail: currentUser.email,
+              doctorId: 'doc_4',
+              doctorName: 'Dr. James Thorne',
+              doctorSpecialty: 'General Practitioner',
+              clinicType: 'gp_practice',
+              dateTime: followUpDate.toISOString(),
+              durationMinutes: 20,
+              mode: 'in_person',
+              status: 'confirmed',
+              paymentStatus: 'exempt_nhs',
+              reasonForVisit: 'Routine Blood Pressure & Health Check',
+              mlPrediction: {
+                noShowProbability: 8,
+                riskLevel: 'low',
+                confidenceScore: 0.92,
+                keyFactors: [],
+                recommendedAction: 'Standard 24h reminder',
+                smsStrategy: 'standard_24h'
+              },
+              twilioRemindersSent: []
+            };
+
+            return [personalAppt, inPersonAppt, ...prev];
+          }
+          return prev;
+        });
+
+        // Seed active prescription for this patient
+        setRefillRequests((prev) => {
+          const hasRefill = prev.some((r) => r.patientId === currentUser.id);
+          if (!hasRefill) {
+            const rx: PrescriptionRefillRequest = {
+              id: `ref_pat_${Date.now().toString().slice(-4)}`,
+              patientId: currentUser.id,
+              patientName: currentUser.name,
+              patientNhsNumber: newPatient.nhsNumber,
+              doctorId: 'doc_1',
+              doctorName: 'Dr. Sarah Jenkins',
+              medicationName: 'Salbutamol 100mcg Inhaler',
+              dosage: '100mcg',
+              quantity: '1 inhaler (200 doses)',
+              frequency: '1-2 puffs as required for wheezing',
+              lastIssuedDate: '2026-09-01T10:00:00Z',
+              reasonForRequest: 'Repeat maintenance for asthma symptom relief',
+              preferredPharmacy: {
+                name: 'Boots Pharmacy - Piccadilly Branch',
+                odsCode: 'FC102',
+                address: 'Piccadilly, London W1J 9LL',
+                electronicPrescriptionService: true
+              },
+              requestedDate: new Date().toISOString(),
+              status: 'approved',
+              doctorSignature: 'GMC 7489201 - Dr. Sarah Jenkins (NHS EPS R2)'
+            };
+            return [rx, ...prev];
+          }
+          return prev;
+        });
+      }
+    }
+  }, [currentUser]);
 
   const showToast = (type: ToastMessage['type'], title: string, description: string) => {
     const id = `toast_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;

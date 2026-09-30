@@ -23,7 +23,8 @@ import {
   Stethoscope,
   Clock,
   HeartPulse,
-  Lock
+  Lock,
+  Bell
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -135,18 +136,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onCloseMobile }) => {
       case 'patient':
         return [
           {
-            section: 'My Healthcare',
+            section: 'MY HEALTHCARE',
             items: [
-              { id: 'portal', label: 'My Portal', icon: User },
-              { id: 'scheduler', label: 'Book Appointment', icon: Calendar },
-              { id: 'prescriptions', label: 'Repeat Prescriptions', icon: Pill },
-              { id: 'intake', label: 'Health Questionnaire', icon: FileText },
+              { id: 'patient_dashboard', label: 'Dashboard', icon: LayoutDashboard },
+              { id: 'patient_appointments', label: 'Appointments', icon: Calendar },
+              { id: 'patient_prescriptions', label: 'Prescriptions', icon: Pill },
+              { id: 'patient_forms', label: 'Health Forms', icon: FileText },
+              { id: 'patient_records', label: 'Medical Records', icon: ClipboardList },
             ],
           },
           {
-            section: 'Consultations',
+            section: 'CONSULTATIONS',
             items: [
-              { id: 'telehealth', label: 'Video Waiting Room', icon: Video },
+              { id: 'patient_consultations', label: 'Video Consultations', icon: Video, badge: 'Live', badgeColor: 'bg-emerald-100 text-emerald-700' },
+              { id: 'patient_messages', label: 'Messages', icon: MessageSquare },
+            ],
+          },
+          {
+            section: 'ACCOUNT',
+            items: [
+              { id: 'patient_profile', label: 'My Profile', icon: User },
+              { id: 'patient_notifications', label: 'Notifications', icon: Bell },
+              { id: 'patient_privacy', label: 'Privacy & Security', icon: ShieldCheck },
             ],
           },
         ];
@@ -333,16 +344,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onCloseMobile }) => {
         <div className="p-3 border-t border-slate-100 space-y-1">
           <button
             onClick={() => {
-              setActiveTab('help');
+              setActiveTab(role === 'patient' ? 'patient_help' : 'help');
               onCloseMobile();
             }}
             className={`w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold rounded-xl transition-all ${
-              activeTab === 'help'
+              activeTab === (role === 'patient' ? 'patient_help' : 'help')
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
-            <HelpCircle className={`w-4 h-4 ${activeTab === 'help' ? 'text-white' : 'text-slate-400'}`} />
+            <HelpCircle className={`w-4 h-4 ${activeTab === (role === 'patient' ? 'patient_help' : 'help') ? 'text-white' : 'text-slate-400'}`} />
             <span>Help & Support</span>
           </button>
           <button

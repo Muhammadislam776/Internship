@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AuthUser, UserRole, Permission } from '../types';
+import { supabase } from '../lib/supabaseClient';
 
 export const INITIAL_DEMO_ACCOUNTS: AuthUser[] = [
   {
@@ -98,6 +99,14 @@ export const INITIAL_DEMO_ACCOUNTS: AuthUser[] = [
   }
 ];
 
+export const DEFAULT_ROLE_AVATARS: Record<UserRole, string> = {
+  doctor: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=300',
+  patient: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300',
+  receptionist: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300',
+  practice_manager: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=300',
+  saas_admin: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300'
+};
+
 export interface SignUpData {
   name: string;
   email: string;
@@ -173,6 +182,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(timer);
   }, [isAuthenticated]);
 
+  // Synchronize profiles from Supabase on mount
+  useEffect(() => {
+    async function loadSupabaseProfiles() {
+      try {
+        const { data, error } = await supabase.from('profiles').select('*');
+        if (!error && data && data.length > 0) {
+          setRegisteredUsers((prev) => {
+            const map = new Map<string, AuthUser>();
+            // Add existing demo accounts
+            prev.forEach((u) => map.set(u.email.toLowerCase(), u));
+            // Add supabase profiles
+            data.forEach((p: any) => {
+              if (!p.email) return;
+              const role = (p.role as UserRole) || 'patient';
+              map.set(p.email.toLowerCase(), {
+                id: p.id,
+                name: p.name || p.email.split('@')[0],
+                email: p.email,
+                role: role,
+                title: p.title || (role === 'doctor' ? 'Clinical Practitioner' : role === 'patient' ? 'Registered NHS Patient' : 'Practice Staff'),
+                gmcNumber: p.gmc_number,
+                nhsNumber: p.nhs_number,
+                clinicName: p.clinic_name || 'St. James Health Centre (London)',
+                avatar: p.avatar_url || DEFAULT_ROLE_AVATARS[role],
+                is2FAEnabled: true,
+                twoFactorMethod: role === 'patient' ? 'sms_otp' : 'nhs_smartcard',
+                permissions: getPermissionsForRole(role),
+                lastLoginAt: p.created_at || new Date().toISOString()
+              });
+            });
+            return Array.from(map.values());
+          });
+        }
+      } catch (e) {
+        // Silent fallback for offline
+      }
+    }
+    loadSupabaseProfiles();
+  }, []);
+
   const getPermissionsForRole = (role: UserRole): Permission[] => {
     switch (role) {
       case 'saas_admin':
@@ -218,25 +267,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signUp = async (data: SignUpData): Promise<{ success: boolean; message: string; user?: AuthUser }> => {
-    // Artificial latency for Supabase Auth API call
-    await new Promise((r) => setTimeout(r, 600));
-
-    // Check if user already exists
+    // Check if user already exists locally
     const existing = registeredUsers.find((u) => u.email.toLowerCase() === data.email.toLowerCase());
     if (existing) {
-      return { success: false, message: 'An account with this email address already exists in Supabase directory.' };
+      return { success: false, message: 'An account with this email address already exists in MedConnect directory.' };
     }
 
-    const defaultAvatars: Record<UserRole, string> = {
-      doctor: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=300',
-      patient: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300',
-      receptionist: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300',
-      practice_manager: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=300',
-      saas_admin: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300'
-    };
+    let supabaseUserId = `usr_${Date.now().toString().slice(-6)}`;
+    let isSupabaseCreated = false;
+
+    // 1. Try real Supabase Auth SignUp
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            name: data.name,
+            role: data.role,
+            title: data.title || (data.role === 'doctor' ? 'Clinical Practitioner' : data.role === 'patient' ? 'Registered NHS Patient' : 'Practice Staff'),
+            gmcNumber: data.gmcNumber || null,
+            nhsNumber: data.nhsNumber || (data.role === 'patient' ? `${Math.floor(100 + Math.random() * 900)} ${Math.floor(100 + Math.random() * 900)} ${Math.floor(1000 + Math.random() * 9000)}` : null),
+            clinicName: data.clinicName || 'St. James Health Centre (London)',
+            avatar: DEFAULT_ROLE_AVATARS[data.role]
+          }
+        }
+      });
+
+      if (!authError && authData?.user?.id) {
+        supabaseUserId = authData.user.id;
+        isSupabaseCreated = true;
+
+        // Try direct profiles table upsert
+        try {
+          await supabase.from('profiles').upsert({
+            id: authData.user.id,
+            email: data.email,
+            name: data.name,
+            role: data.role,
+            title: data.title || (data.role === 'doctor' ? 'Clinical Practitioner' : data.role === 'patient' ? 'Registered NHS Patient' : 'Practice Staff'),
+            gmc_number: data.gmcNumber || null,
+            nhs_number: data.nhsNumber || null,
+            clinic_name: data.clinicName || 'St. James Health Centre (London)',
+            avatar_url: DEFAULT_ROLE_AVATARS[data.role],
+            phone: data.phone || null
+          });
+        } catch (profileErr) {
+          console.warn('Profiles table upsert note:', profileErr);
+        }
+      } else if (authError) {
+        console.warn('Supabase Auth response:', authError.message);
+      }
+    } catch (err: any) {
+      console.warn('Supabase Auth connection notice:', err?.message);
+    }
 
     const newUser: AuthUser = {
-      id: `usr_${Date.now().toString().slice(-6)}`,
+      id: supabaseUserId,
       name: data.name,
       email: data.email,
       role: data.role,
@@ -244,7 +331,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       gmcNumber: data.gmcNumber,
       nhsNumber: data.nhsNumber || (data.role === 'patient' ? `${Math.floor(100 + Math.random() * 900)} ${Math.floor(100 + Math.random() * 900)} ${Math.floor(1000 + Math.random() * 9000)}` : undefined),
       clinicName: data.clinicName || 'St. James Health Centre (London)',
-      avatar: defaultAvatars[data.role],
+      avatar: DEFAULT_ROLE_AVATARS[data.role],
       is2FAEnabled: true,
       twoFactorMethod: data.role === 'patient' ? 'sms_otp' : 'nhs_smartcard',
       permissions: getPermissionsForRole(data.role),
@@ -255,18 +342,73 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return {
       success: true,
-      message: `Account created for ${data.name} as ${data.role.toUpperCase()}! You can now log in with your credentials.`,
+      message: isSupabaseCreated
+        ? `Account registered in Supabase & MedConnect! You can now log in.`
+        : `Account created for ${data.name} (${data.role.toUpperCase()})! You can now log in.`,
       user: newUser
     };
   };
 
   const loginWithCredentials = async (
     email: string,
-    _password: string,
+    password: string,
     _otp?: string
   ): Promise<{ success: boolean; message?: string; user?: AuthUser }> => {
-    await new Promise((r) => setTimeout(r, 400));
+    // 1. Try real Supabase signInWithPassword
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
+      if (!authError && authData?.user) {
+        let profileData: any = null;
+        try {
+          const { data: p } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', authData.user.id)
+            .maybeSingle();
+          profileData = p;
+        } catch (e) {
+          // ignore
+        }
+
+        const meta = authData.user.user_metadata || {};
+        const role: UserRole = profileData?.role || meta.role || 'patient';
+        const userObj: AuthUser = {
+          id: authData.user.id,
+          name: profileData?.name || meta.name || authData.user.email?.split('@')[0] || 'User',
+          email: authData.user.email || email,
+          role: role,
+          title: profileData?.title || meta.title || (role === 'doctor' ? 'Clinical Practitioner' : role === 'patient' ? 'Registered NHS Patient' : 'Practice Staff'),
+          gmcNumber: profileData?.gmc_number || meta.gmcNumber,
+          nhsNumber: profileData?.nhs_number || meta.nhsNumber,
+          clinicName: profileData?.clinic_name || meta.clinicName || 'St. James Health Centre (London)',
+          avatar: profileData?.avatar_url || meta.avatar || DEFAULT_ROLE_AVATARS[role],
+          is2FAEnabled: true,
+          twoFactorMethod: role === 'patient' ? 'sms_otp' : 'nhs_smartcard',
+          permissions: getPermissionsForRole(role),
+          lastLoginAt: new Date().toISOString()
+        };
+
+        setCurrentUser(userObj);
+        setIsAuthenticated(true);
+        localStorage.setItem('medconnect_session_user', JSON.stringify(userObj));
+        sessionStorage.setItem('medconnect_session_user', JSON.stringify(userObj));
+        setRegisteredUsers((prev) => {
+          const filtered = prev.filter((u) => u.email.toLowerCase() !== email.toLowerCase());
+          return [userObj, ...filtered];
+        });
+        setSessionTimeLeftMinutes(60);
+        setIsAuthModalOpen(false);
+        return { success: true, user: userObj };
+      }
+    } catch (err: any) {
+      console.warn('Supabase signInWithPassword fallback:', err?.message);
+    }
+
+    // 2. Fallback to locally registered accounts
     const target = registeredUsers.find((a) => a.email.toLowerCase() === email.toLowerCase());
     if (!target) {
       return {
@@ -297,7 +439,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAuthModalOpen(false);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      // ignore
+    }
     localStorage.removeItem('medconnect_session_user');
     sessionStorage.removeItem('medconnect_session_user');
     setCurrentUser(null);
@@ -313,6 +460,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setRegisteredUsers((prev) =>
       prev.map((u) => (u.id === currentUser.id ? newUserData : u))
     );
+
+    // Sync to Supabase profiles table in background
+    try {
+      supabase.from('profiles').update({
+        name: newUserData.name,
+        clinic_name: newUserData.clinicName,
+        phone: (newUserData as any).phone || null,
+        avatar_url: newUserData.avatar
+      }).eq('id', newUserData.id).then();
+    } catch (e) {
+      // ignore
+    }
   };
 
   const hasPermission = (perm: Permission): boolean => {
