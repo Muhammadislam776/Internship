@@ -45,9 +45,24 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBackToHome, defaultMode = 
   const [nhsNumber, setNhsNumber] = useState('485 772 9012');
   const [clinicName, setClinicName] = useState('St. James Health Centre (London)');
 
-  // Sign In State
-  const [loginEmail, setLoginEmail] = useState('sarah.jenkins@stjamesgp.nhs.uk');
-  const [loginPassword, setLoginPassword] = useState('••••••••••••');
+  // Sign In State - prefill with user's registered email if available
+  const [loginEmail, setLoginEmail] = useState(() => {
+    try {
+      const savedUsers = localStorage.getItem('medconnect_users');
+      if (savedUsers) {
+        const parsed = JSON.parse(savedUsers);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Check for recently created user
+          const custom = parsed.find(
+            (u: any) => u.id && !['doc_1', 'pat_1', 'rec_1', 'mgr_1', 'admin_1'].includes(u.id)
+          );
+          if (custom?.email) return custom.email;
+        }
+      }
+    } catch {}
+    return '';
+  });
+  const [loginPassword, setLoginPassword] = useState('');
 
   const handleSignUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

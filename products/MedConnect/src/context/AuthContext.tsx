@@ -140,9 +140,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return INITIAL_DEMO_ACCOUNTS;
   });
 
-  // Start with unauthenticated state on page load (so the Login / Register screen shows first!)
+  // Start with saved user state if available so login persists across sessions
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
-    const savedSession = sessionStorage.getItem('medconnect_session_user');
+    const savedSession = localStorage.getItem('medconnect_session_user') || sessionStorage.getItem('medconnect_session_user');
     if (savedSession) {
       try {
         return JSON.parse(savedSession);
@@ -154,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return sessionStorage.getItem('medconnect_session_user') !== null;
+    return (localStorage.getItem('medconnect_session_user') || sessionStorage.getItem('medconnect_session_user')) !== null;
   });
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
@@ -277,6 +277,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setCurrentUser(target);
     setIsAuthenticated(true);
+    localStorage.setItem('medconnect_session_user', JSON.stringify(target));
     sessionStorage.setItem('medconnect_session_user', JSON.stringify(target));
     setSessionTimeLeftMinutes(60);
     setIsAuthModalOpen(false);
@@ -290,12 +291,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setCurrentUser(target);
     setIsAuthenticated(true);
+    localStorage.setItem('medconnect_session_user', JSON.stringify(target));
     sessionStorage.setItem('medconnect_session_user', JSON.stringify(target));
     setSessionTimeLeftMinutes(60);
     setIsAuthModalOpen(false);
   };
 
   const logout = () => {
+    localStorage.removeItem('medconnect_session_user');
     sessionStorage.removeItem('medconnect_session_user');
     setCurrentUser(null);
     setIsAuthenticated(false);
@@ -305,6 +308,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!currentUser) return;
     const newUserData = { ...currentUser, ...updated };
     setCurrentUser(newUserData);
+    localStorage.setItem('medconnect_session_user', JSON.stringify(newUserData));
     sessionStorage.setItem('medconnect_session_user', JSON.stringify(newUserData));
     setRegisteredUsers((prev) =>
       prev.map((u) => (u.id === currentUser.id ? newUserData : u))
