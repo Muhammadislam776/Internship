@@ -224,6 +224,138 @@ export const MOCK_PATIENTS: Patient[] = [
       consentTimestamp: '2026-03-12T16:20:00Z'
     },
     createdAt: '2026-03-12T16:20:00Z'
+  },
+  {
+    id: 'pat_5',
+    nhsNumber: '552 901 3490',
+    firstName: 'Emma',
+    lastName: 'Wilson',
+    dob: '1992-07-14',
+    gender: 'female',
+    email: 'emma.wilson@example.co.uk',
+    phone: '+44 7700 900222',
+    address: {
+      line1: '12 Victoria Street',
+      city: 'London',
+      postcode: 'SW1E 5ND'
+    },
+    emergencyContact: {
+      name: 'David Wilson',
+      relationship: 'Spouse',
+      phone: '+44 7700 900223'
+    },
+    allergies: ['None known'],
+    medicalConditions: ['Iron Deficiency Anaemia'],
+    activePrescriptionsCount: 1,
+    intakeFormCompleted: true,
+    historicalNoShows: 0,
+    historicalTotalBookings: 5,
+    gdprConsent: {
+      marketingConsent: true,
+      smsNotificationConsent: true,
+      dataSharingConsent: true,
+      consentTimestamp: '2026-01-15T10:00:00Z'
+    },
+    createdAt: '2025-08-11T09:00:00Z'
+  },
+  {
+    id: 'pat_6',
+    nhsNumber: '782 119 4032',
+    firstName: 'David',
+    lastName: 'Clarke',
+    dob: '1985-02-18',
+    gender: 'male',
+    email: 'david.clarke@example.co.uk',
+    phone: '+44 7700 900342',
+    address: {
+      line1: '55 Cromwell Road',
+      city: 'London',
+      postcode: 'SW7 2ED'
+    },
+    emergencyContact: {
+      name: 'Sarah Clarke',
+      relationship: 'Wife',
+      phone: '+44 7700 900343'
+    },
+    allergies: ['Latex'],
+    medicalConditions: ['Chronic Low Back Pain', 'Sciatica'],
+    activePrescriptionsCount: 2,
+    intakeFormCompleted: true,
+    historicalNoShows: 2,
+    historicalTotalBookings: 7,
+    gdprConsent: {
+      marketingConsent: false,
+      smsNotificationConsent: true,
+      dataSharingConsent: true,
+      consentTimestamp: '2026-02-20T11:30:00Z'
+    },
+    createdAt: '2025-07-01T12:00:00Z'
+  },
+  {
+    id: 'pat_7',
+    nhsNumber: '621 883 9104',
+    firstName: 'Fatima',
+    lastName: 'Zahra',
+    dob: '1998-09-30',
+    gender: 'female',
+    email: 'fatima.zahra@example.co.uk',
+    phone: '+44 7700 900561',
+    address: {
+      line1: '34 Oxford Gardens',
+      city: 'London',
+      postcode: 'W10 5UQ'
+    },
+    emergencyContact: {
+      name: 'Ahmed Zahra',
+      relationship: 'Brother',
+      phone: '+44 7700 900562'
+    },
+    allergies: ['Peanuts'],
+    medicalConditions: ['Seasonal Allergic Conjunctivitis'],
+    activePrescriptionsCount: 1,
+    intakeFormCompleted: true,
+    historicalNoShows: 0,
+    historicalTotalBookings: 3,
+    gdprConsent: {
+      marketingConsent: true,
+      smsNotificationConsent: true,
+      dataSharingConsent: true,
+      consentTimestamp: '2026-03-01T14:00:00Z'
+    },
+    createdAt: '2026-01-10T10:15:00Z'
+  },
+  {
+    id: 'pat_8',
+    nhsNumber: '490 120 7741',
+    firstName: 'James',
+    lastName: 'Robertson',
+    dob: '1972-12-04',
+    gender: 'male',
+    email: 'james.robertson@example.co.uk',
+    phone: '+44 7700 900673',
+    address: {
+      line1: '102 Pall Mall',
+      city: 'London',
+      postcode: 'SW1Y 5ES'
+    },
+    emergencyContact: {
+      name: 'Karen Robertson',
+      relationship: 'Spouse',
+      phone: '+44 7700 900674'
+    },
+    allergies: ['Codeine Phosphate'],
+    medicalConditions: ['Gout', 'Hyperuricemia'],
+    activePrescriptionsCount: 2,
+    intakeFormCompleted: true,
+    historicalNoShows: 1,
+    historicalTotalBookings: 12,
+    gdprConsent: {
+      marketingConsent: false,
+      smsNotificationConsent: true,
+      dataSharingConsent: true,
+      consentTimestamp: '2025-11-18T09:20:00Z'
+    },
+    createdAt: '2025-03-14T08:00:00Z'
   }
 ];
 
@@ -291,9 +423,17 @@ export const MOCK_INTAKE_PAYLOADS: Record<string, string> = {
   }).ciphertext
 };
 
+const getTodayIso = (hours: number, minutes: number = 0, dayOffset: number = 0): string => {
+  const d = new Date();
+  d.setDate(d.getDate() + dayOffset);
+  d.setHours(hours, minutes, 0, 0);
+  return d.toISOString();
+};
+
 export const MOCK_APPOINTMENTS: Appointment[] = [
+  // ── Today's Completed Visits ──
   {
-    id: 'apt_101',
+    id: 'apt_today_01',
     patientId: 'pat_1',
     patientName: 'Oliver Bennett',
     patientNhsNumber: '485 772 9012',
@@ -303,39 +443,17 @@ export const MOCK_APPOINTMENTS: Appointment[] = [
     doctorName: 'Dr. Sarah Jenkins',
     doctorSpecialty: 'GP Practice',
     clinicType: 'gp_practice',
-    dateTime: '2026-09-28T09:30:00.000Z',
+    dateTime: getTodayIso(8, 30),
     durationMinutes: 15,
-    mode: 'video_consultation',
-    status: 'confirmed',
-    reasonForVisit: 'Asthma Inhaler Stepped Review & Cough',
-    meetingRoomId: 'telehealth-apt-101-sarah-oliver',
-    mlPrediction: predictNoShowRisk({
-      leadTimeDays: 2,
-      patientAge: 37,
-      historicalNoShows: 0,
-      historicalTotalBookings: 6,
-      dayOfWeek: 1,
-      hourOfDay: 9,
-      appointmentMode: 'video_consultation',
-      clinicType: 'gp_practice',
-      smsConfirmed: true,
-      depositPaid: false
-    }),
-    twilioRemindersSent: [
-      {
-        timestamp: '2026-09-27T10:00:00Z',
-        type: 'sms',
-        status: 'responded_confirmed',
-        messageBody: 'Hi Oliver, your Telehealth video consultation with Dr. Sarah Jenkins is confirmed for Mon 28 Sep 09:30. Link: https://medconnect.uk/telehealth/apt_101'
-      }
-    ],
-    googleCalendarEventId: 'gcal_8830192',
-    gmbSource: true,
-    intakeFormAttached: true,
+    mode: 'in_person',
+    status: 'completed',
+    reasonForVisit: 'Asthma Inhaler Stepped Review & Spirometry',
+    mlPrediction: { noShowProbability: 4, riskLevel: 'low', confidenceScore: 0.98, keyFactors: [], recommendedAction: 'Standard 24h reminder', smsStrategy: 'standard_24h' },
+    twilioRemindersSent: [{ timestamp: getTodayIso(8, 0, -1), type: 'sms', status: 'delivered', messageBody: 'Reminder: Appointment at 08:30 today with Dr. Jenkins' }],
     paymentStatus: 'exempt_nhs'
   },
   {
-    id: 'apt_102',
+    id: 'apt_today_02',
     patientId: 'pat_2',
     patientName: 'Sophie Taylor',
     patientNhsNumber: '918 234 5091',
@@ -345,38 +463,37 @@ export const MOCK_APPOINTMENTS: Appointment[] = [
     doctorName: 'Dr. Sarah Jenkins',
     doctorSpecialty: 'GP Practice',
     clinicType: 'gp_practice',
-    dateTime: '2026-09-28T11:00:00.000Z',
+    dateTime: getTodayIso(9, 0),
     durationMinutes: 15,
     mode: 'in_person',
-    status: 'scheduled',
-    reasonForVisit: 'Blood Pressure Monitoring & Migraine Medication Review',
-    mlPrediction: predictNoShowRisk({
-      leadTimeDays: 16,
-      patientAge: 30,
-      historicalNoShows: 2,
-      historicalTotalBookings: 4,
-      dayOfWeek: 1,
-      hourOfDay: 11,
-      appointmentMode: 'in_person',
-      clinicType: 'gp_practice',
-      smsConfirmed: false,
-      depositPaid: false
-    }),
-    twilioRemindersSent: [
-      {
-        timestamp: '2026-09-27T08:00:00Z',
-        type: 'sms',
-        status: 'delivered',
-        messageBody: 'Hi Sophie, appointment with Dr. Sarah Jenkins tomorrow 11:00 at St. James GP. Reply YES to confirm or CANCEL.'
-      }
-    ],
-    googleCalendarEventId: 'gcal_4491022',
-    gmbSource: false,
-    intakeFormAttached: true,
+    status: 'completed',
+    reasonForVisit: 'Hypertension Blood Pressure Monitoring',
+    mlPrediction: { noShowProbability: 6, riskLevel: 'low', confidenceScore: 0.95, keyFactors: [], recommendedAction: 'Standard 24h reminder', smsStrategy: 'standard_24h' },
+    twilioRemindersSent: [{ timestamp: getTodayIso(9, 0, -1), type: 'sms', status: 'delivered', messageBody: 'Reminder: Appointment at 09:00 today' }],
     paymentStatus: 'exempt_nhs'
   },
   {
-    id: 'apt_103',
+    id: 'apt_today_03',
+    patientId: 'pat_3',
+    patientName: 'Arthur Pendelton',
+    patientNhsNumber: '672 109 8831',
+    patientPhone: '+44 7700 900789',
+    patientEmail: 'arthur.pendelton@example.co.uk',
+    doctorId: 'doc_4',
+    doctorName: 'Dr. James Thorne',
+    doctorSpecialty: 'General Practice',
+    clinicType: 'gp_practice',
+    dateTime: getTodayIso(9, 30),
+    durationMinutes: 20,
+    mode: 'in_person',
+    status: 'completed',
+    reasonForVisit: 'Diabetic Foot Check & HbA1c Follow-up',
+    mlPrediction: { noShowProbability: 5, riskLevel: 'low', confidenceScore: 0.96, keyFactors: [], recommendedAction: 'Standard 24h reminder', smsStrategy: 'standard_24h' },
+    twilioRemindersSent: [],
+    paymentStatus: 'exempt_nhs'
+  },
+  {
+    id: 'apt_today_04',
     patientId: 'pat_4',
     patientName: 'Maya Al-Mansoor',
     patientNhsNumber: '334 892 0182',
@@ -386,39 +503,142 @@ export const MOCK_APPOINTMENTS: Appointment[] = [
     doctorName: 'Aisha Patel, MCSP',
     doctorSpecialty: 'MSK Physiotherapy',
     clinicType: 'physiotherapy',
-    dateTime: '2026-09-28T14:30:00.000Z',
-    durationMinutes: 45,
+    dateTime: getTodayIso(10, 0),
+    durationMinutes: 30,
     mode: 'in_person',
-    status: 'confirmed',
-    reasonForVisit: 'ACL Reconstruction Week 6 Rehabilitation & Gait Analysis',
-    mlPrediction: predictNoShowRisk({
-      leadTimeDays: 4,
-      patientAge: 25,
-      historicalNoShows: 1,
-      historicalTotalBookings: 2,
-      dayOfWeek: 1,
-      hourOfDay: 14,
-      appointmentMode: 'in_person',
-      clinicType: 'physiotherapy',
-      smsConfirmed: true,
-      depositPaid: true
-    }),
-    twilioRemindersSent: [
-      {
-        timestamp: '2026-09-27T12:30:00Z',
-        type: 'sms',
-        status: 'responded_confirmed',
-        messageBody: 'Hi Maya, your Physio Rehab session with Aisha Patel is booked for Mon 14:30 at Kensington Physio Studio 2. £25 deposit received.'
-      }
-    ],
-    googleCalendarEventId: 'gcal_6672911',
-    gmbSource: true,
-    intakeFormAttached: false,
+    status: 'completed',
+    reasonForVisit: 'ACL Rehab Week 8 Resistance Evaluation',
+    mlPrediction: { noShowProbability: 8, riskLevel: 'low', confidenceScore: 0.92, keyFactors: [], recommendedAction: 'Standard 24h reminder', smsStrategy: 'standard_24h' },
+    twilioRemindersSent: [],
     paymentStatus: 'deposit_paid',
     feeGbp: 85
   },
+
+  // ── Today's Checked In / In Waiting Room ──
   {
-    id: 'apt_104',
+    id: 'apt_today_05',
+    patientId: 'pat_5',
+    patientName: 'Emma Wilson',
+    patientNhsNumber: '552 901 3490',
+    patientPhone: '+44 7700 900222',
+    patientEmail: 'emma.wilson@example.co.uk',
+    doctorId: 'doc_1',
+    doctorName: 'Dr. Sarah Jenkins',
+    doctorSpecialty: 'GP Practice',
+    clinicType: 'gp_practice',
+    dateTime: getTodayIso(10, 30),
+    durationMinutes: 15,
+    mode: 'in_person',
+    status: 'in_progress',
+    reasonForVisit: 'Anaemia Blood Test Review & Ferrous Fumarate',
+    mlPrediction: { noShowProbability: 5, riskLevel: 'low', confidenceScore: 0.97, keyFactors: [], recommendedAction: 'Standard reminder', smsStrategy: 'standard_24h' },
+    twilioRemindersSent: [{ timestamp: getTodayIso(8, 0), type: 'sms', status: 'delivered', messageBody: 'See you at 10:30' }],
+    paymentStatus: 'exempt_nhs'
+  },
+  {
+    id: 'apt_today_06',
+    patientId: 'pat_6',
+    patientName: 'David Clarke',
+    patientNhsNumber: '782 119 4032',
+    patientPhone: '+44 7700 900342',
+    patientEmail: 'david.clarke@example.co.uk',
+    doctorId: 'doc_1',
+    doctorName: 'Dr. Sarah Jenkins',
+    doctorSpecialty: 'GP Practice',
+    clinicType: 'gp_practice',
+    dateTime: getTodayIso(11, 0),
+    durationMinutes: 15,
+    mode: 'in_person',
+    status: 'in_progress',
+    reasonForVisit: 'Chronic Lower Back Pain Flare-up',
+    mlPrediction: { noShowProbability: 38, riskLevel: 'high', confidenceScore: 0.88, keyFactors: [], recommendedAction: 'Priority confirmation', smsStrategy: 'interactive_confirmation' },
+    twilioRemindersSent: [{ timestamp: getTodayIso(9, 0), type: 'sms', status: 'delivered', messageBody: 'Please confirm 11:00 slot' }],
+    paymentStatus: 'exempt_nhs'
+  },
+  {
+    id: 'apt_today_07',
+    patientId: 'pat_7',
+    patientName: 'Fatima Zahra',
+    patientNhsNumber: '621 883 9104',
+    patientPhone: '+44 7700 900561',
+    patientEmail: 'fatima.zahra@example.co.uk',
+    doctorId: 'doc_4',
+    doctorName: 'Dr. James Thorne',
+    doctorSpecialty: 'General Practice',
+    clinicType: 'gp_practice',
+    dateTime: getTodayIso(11, 30),
+    durationMinutes: 15,
+    mode: 'in_person',
+    status: 'in_progress',
+    reasonForVisit: 'Seasonal Allergic Rhinitis Medication Review',
+    mlPrediction: { noShowProbability: 4, riskLevel: 'low', confidenceScore: 0.96, keyFactors: [], recommendedAction: 'Standard reminder', smsStrategy: 'standard_24h' },
+    twilioRemindersSent: [],
+    paymentStatus: 'exempt_nhs'
+  },
+  {
+    id: 'apt_today_08',
+    patientId: 'pat_8',
+    patientName: 'James Robertson',
+    patientNhsNumber: '490 120 7741',
+    patientPhone: '+44 7700 900673',
+    patientEmail: 'james.robertson@example.co.uk',
+    doctorId: 'doc_4',
+    doctorName: 'Dr. James Thorne',
+    doctorSpecialty: 'General Practice',
+    clinicType: 'gp_practice',
+    dateTime: getTodayIso(11, 45),
+    durationMinutes: 15,
+    mode: 'in_person',
+    status: 'in_progress',
+    reasonForVisit: 'Uric Acid & Gout Follow-up Consultation',
+    mlPrediction: { noShowProbability: 9, riskLevel: 'low', confidenceScore: 0.94, keyFactors: [], recommendedAction: 'Standard reminder', smsStrategy: 'standard_24h' },
+    twilioRemindersSent: [],
+    paymentStatus: 'exempt_nhs'
+  },
+
+  // ── Today's Confirmed Upcoming ──
+  {
+    id: 'apt_today_09',
+    patientId: 'pat_1',
+    patientName: 'Oliver Bennett',
+    patientNhsNumber: '485 772 9012',
+    patientPhone: '+44 7700 900123',
+    patientEmail: 'oliver.bennett@example.co.uk',
+    doctorId: 'doc_1',
+    doctorName: 'Dr. Sarah Jenkins',
+    doctorSpecialty: 'GP Practice',
+    clinicType: 'gp_practice',
+    dateTime: getTodayIso(14, 0),
+    durationMinutes: 15,
+    mode: 'video_consultation',
+    status: 'confirmed',
+    reasonForVisit: 'General Consultation & Health Review',
+    mlPrediction: { noShowProbability: 5, riskLevel: 'low', confidenceScore: 0.95, keyFactors: [], recommendedAction: 'Telehealth link dispatched', smsStrategy: 'standard_24h' },
+    twilioRemindersSent: [{ timestamp: getTodayIso(12, 0), type: 'sms', status: 'delivered', messageBody: 'Video link: https://medconnect.uk/telehealth' }],
+    paymentStatus: 'exempt_nhs'
+  },
+  {
+    id: 'apt_today_10',
+    patientId: 'pat_2',
+    patientName: 'Sophie Taylor',
+    patientNhsNumber: '918 234 5091',
+    patientPhone: '+44 7700 900456',
+    patientEmail: 'sophie.taylor@example.co.uk',
+    doctorId: 'doc_1',
+    doctorName: 'Dr. Sarah Jenkins',
+    doctorSpecialty: 'GP Practice',
+    clinicType: 'gp_practice',
+    dateTime: getTodayIso(14, 30),
+    durationMinutes: 15,
+    mode: 'in_person',
+    status: 'confirmed',
+    reasonForVisit: 'Migraine Aura Medication Follow-up',
+    mlPrediction: { noShowProbability: 7, riskLevel: 'low', confidenceScore: 0.94, keyFactors: [], recommendedAction: 'Standard 24h reminder', smsStrategy: 'standard_24h' },
+    twilioRemindersSent: [],
+    paymentStatus: 'exempt_nhs'
+  },
+  {
+    id: 'apt_today_11',
     patientId: 'pat_3',
     patientName: 'Arthur Pendelton',
     patientNhsNumber: '672 109 8831',
@@ -428,36 +648,118 @@ export const MOCK_APPOINTMENTS: Appointment[] = [
     doctorName: 'Dr. Marcus Vance',
     doctorSpecialty: 'Dental & Orthodontics',
     clinicType: 'dental',
-    dateTime: '2026-09-29T10:00:00.000Z',
+    dateTime: getTodayIso(15, 0),
     durationMinutes: 30,
     mode: 'in_person',
     status: 'confirmed',
-    reasonForVisit: 'Dental Crown Preparation & Periodontal Pocket Check',
-    mlPrediction: predictNoShowRisk({
-      leadTimeDays: 3,
-      patientAge: 72,
-      historicalNoShows: 0,
-      historicalTotalBookings: 18,
-      dayOfWeek: 2,
-      hourOfDay: 10,
-      appointmentMode: 'in_person',
-      clinicType: 'dental',
-      smsConfirmed: true,
-      depositPaid: true
-    }),
-    twilioRemindersSent: [
-      {
-        timestamp: '2026-09-27T09:00:00Z',
-        type: 'sms',
-        status: 'responded_confirmed',
-        messageBody: 'Hi Arthur, dental surgery consultation confirmed with Dr. Marcus Vance for Tue 29 Sep 10:00.'
-      }
-    ],
-    googleCalendarEventId: 'gcal_9901823',
-    gmbSource: true,
-    intakeFormAttached: true,
+    reasonForVisit: 'Crown Fitting & Dental Examination',
+    mlPrediction: { noShowProbability: 5, riskLevel: 'low', confidenceScore: 0.95, keyFactors: [], recommendedAction: 'Standard reminder', smsStrategy: 'standard_24h' },
+    twilioRemindersSent: [],
     paymentStatus: 'deposit_paid',
-    feeGbp: 140
+    feeGbp: 120
+  },
+  {
+    id: 'apt_today_12',
+    patientId: 'pat_4',
+    patientName: 'Maya Al-Mansoor',
+    patientNhsNumber: '334 892 0182',
+    patientPhone: '+44 7700 900891',
+    patientEmail: 'maya.almansoor@example.co.uk',
+    doctorId: 'doc_4',
+    doctorName: 'Dr. James Thorne',
+    doctorSpecialty: 'General Practice',
+    clinicType: 'gp_practice',
+    dateTime: getTodayIso(15, 30),
+    durationMinutes: 15,
+    mode: 'phone',
+    status: 'confirmed',
+    reasonForVisit: 'Post-operative Telephone Triage',
+    mlPrediction: { noShowProbability: 6, riskLevel: 'low', confidenceScore: 0.96, keyFactors: [], recommendedAction: 'Standard reminder', smsStrategy: 'standard_24h' },
+    twilioRemindersSent: [],
+    paymentStatus: 'exempt_nhs'
+  },
+  {
+    id: 'apt_today_13',
+    patientId: 'pat_5',
+    patientName: 'Emma Wilson',
+    patientNhsNumber: '552 901 3490',
+    patientPhone: '+44 7700 900222',
+    patientEmail: 'emma.wilson@example.co.uk',
+    doctorId: 'doc_4',
+    doctorName: 'Dr. James Thorne',
+    doctorSpecialty: 'General Practice',
+    clinicType: 'gp_practice',
+    dateTime: getTodayIso(16, 0),
+    durationMinutes: 15,
+    mode: 'in_person',
+    status: 'confirmed',
+    reasonForVisit: 'Routine Blood Pressure & Health Check',
+    mlPrediction: { noShowProbability: 4, riskLevel: 'low', confidenceScore: 0.97, keyFactors: [], recommendedAction: 'Standard reminder', smsStrategy: 'standard_24h' },
+    twilioRemindersSent: [],
+    paymentStatus: 'exempt_nhs'
+  },
+
+  // ── Attention Required: High Risk, No-Show, Cancelled ──
+  {
+    id: 'apt_today_14',
+    patientId: 'pat_6',
+    patientName: 'David Clarke',
+    patientNhsNumber: '782 119 4032',
+    patientPhone: '+44 7700 900342',
+    patientEmail: 'david.clarke@example.co.uk',
+    doctorId: 'doc_1',
+    doctorName: 'Dr. Sarah Jenkins',
+    doctorSpecialty: 'GP Practice',
+    clinicType: 'gp_practice',
+    dateTime: getTodayIso(16, 30),
+    durationMinutes: 15,
+    mode: 'in_person',
+    status: 'scheduled',
+    reasonForVisit: 'Sciatica & Low Back Review',
+    mlPrediction: { noShowProbability: 45, riskLevel: 'high', confidenceScore: 0.89, keyFactors: [], recommendedAction: 'Flag for receptionist phone confirmation', smsStrategy: 'interactive_confirmation' },
+    twilioRemindersSent: [],
+    paymentStatus: 'exempt_nhs'
+  },
+  {
+    id: 'apt_today_15',
+    patientId: 'pat_7',
+    patientName: 'Fatima Zahra',
+    patientNhsNumber: '621 883 9104',
+    patientPhone: '+44 7700 900561',
+    patientEmail: 'fatima.zahra@example.co.uk',
+    doctorId: 'doc_4',
+    doctorName: 'Dr. James Thorne',
+    doctorSpecialty: 'General Practice',
+    clinicType: 'gp_practice',
+    dateTime: getTodayIso(12, 15),
+    durationMinutes: 15,
+    mode: 'in_person',
+    status: 'no_show',
+    reasonForVisit: 'Allergy Skin Testing Follow-up',
+    mlPrediction: { noShowProbability: 35, riskLevel: 'moderate', confidenceScore: 0.85, keyFactors: [], recommendedAction: 'Follow up by desk', smsStrategy: 'standard_24h' },
+    twilioRemindersSent: [],
+    paymentStatus: 'exempt_nhs'
+  },
+  {
+    id: 'apt_today_16',
+    patientId: 'pat_8',
+    patientName: 'James Robertson',
+    patientNhsNumber: '490 120 7741',
+    patientPhone: '+44 7700 900673',
+    patientEmail: 'james.robertson@example.co.uk',
+    doctorId: 'doc_1',
+    doctorName: 'Dr. Sarah Jenkins',
+    doctorSpecialty: 'GP Practice',
+    clinicType: 'gp_practice',
+    dateTime: getTodayIso(12, 45),
+    durationMinutes: 15,
+    mode: 'in_person',
+    status: 'cancelled',
+    reasonForVisit: 'Routine Follow-up',
+    notes: 'Cancelled: Patient called front desk to reschedule due to work commitments',
+    mlPrediction: { noShowProbability: 20, riskLevel: 'low', confidenceScore: 0.9, keyFactors: [], recommendedAction: 'Slot freed for waitlist', smsStrategy: 'standard_24h' },
+    twilioRemindersSent: [],
+    paymentStatus: 'exempt_nhs'
   }
 ];
 
